@@ -90,9 +90,9 @@ yargs(hideBin(process.argv))
         argv.powerToughness,
         argv.loyalty,
       );
-      const data = JSON.stringify({ action: 'add', user: argv.user, card: cardData });
+      const data = JSON.stringify({ action: 'add', user: argv.user, card: cardData, close: 'CLOSED' });
       client.write(data);
-      client.end();
+//      client.end();
     },
   )
   .help().argv;
@@ -182,9 +182,9 @@ yargs(hideBin(process.argv))
         argv.powerToughness,
         argv.loyalty,
       );
-      const data = JSON.stringify({ action: 'update', user: argv.user, card: cardData });
+      const data = JSON.stringify({ action: 'update', user: argv.user, card: cardData, close: 'CLOSED' });
       client.write(data);
-      client.end();
+//      client.end();
     },
   )
   .help().argv;
@@ -209,9 +209,9 @@ yargs(hideBin(process.argv))
       },
     },
     (argv) => {
-      const data = JSON.stringify({ action: 'remove', user: argv.user, cardID: argv.id });
+      const data = JSON.stringify({ action: 'remove', user: argv.user, cardID: argv.id, close: 'CLOSED' });
       client.write(data);
-      client.end();
+//      client.end();
     },
   )
   .help().argv;
@@ -236,9 +236,9 @@ yargs(hideBin(process.argv))
       },
     },
     (argv) => {
-      const data = JSON.stringify({ action: 'show', user: argv.user, cardID: argv.id });
+      const data = JSON.stringify({ action: 'show', user: argv.user, cardID: argv.id, close: 'CLOSED' });
       client.write(data);
-      client.end();
+//      client.end();
     },
   )
   .help().argv;
@@ -258,9 +258,9 @@ yargs(hideBin(process.argv))
       },
     },
     (argv) => {
-      const data = JSON.stringify({ action: 'list', user: argv.user });
+      const data = JSON.stringify({ action: 'list', user: argv.user, close: 'CLOSED' });
       client.write(data);
-      client.end();
+//      client.end();
     },
   )
   .help().argv;

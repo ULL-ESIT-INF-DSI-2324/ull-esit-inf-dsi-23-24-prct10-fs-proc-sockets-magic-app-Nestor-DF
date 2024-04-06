@@ -1,66 +1,46 @@
 import { MagiCard } from './MagiCard.js';
 import { CardManager } from './CardManager.js';
-import net from 'net';
+import { EventEmitterServer } from './eventEmitterServer.js';
 
 const cardManager = CardManager.getInstance();
+const eventEmitterServer = new EventEmitterServer();
 
-const server = net.createServer({ allowHalfOpen: true }, (connection) => {
-  console.log('A client has connected.');
+eventEmitterServer.on('request', (request, connection) => {
+  let cardData;
+  if (request.action === 'add' || request.action === 'update') {
+    cardData = new MagiCard(
+      request.card.id,
+      request.card.name,
+      request.card.manaCost,
+      request.card.color,
+      request.card.cardType,
+      request.card.rarity,
+      request.card.rulesText,
+      request.card.marketValue,
+      request.card.powerToughness,
+      request.card.loyalty,
+    );
+  }
 
-  let wholeData = '';
-  connection.on('data', (dataChunk) => {
-    wholeData += dataChunk;
-  });
-
-  connection.on('end', () => {
-    const jsonData = JSON.parse(wholeData.toString());
-    let cardData;
-    if (jsonData.action === 'add' || jsonData.action === 'update') {
-      cardData = new MagiCard(
-        jsonData.card.id,
-        jsonData.card.name,
-        jsonData.card.manaCost,
-        jsonData.card.color,
-        jsonData.card.cardType,
-        jsonData.card.rarity,
-        jsonData.card.rulesText,
-        jsonData.card.marketValue,
-        jsonData.card.powerToughness,
-        jsonData.card.loyalty,
-      );
-    }
-    switch (jsonData.action) {
-      case 'add':
-        connection.write(cardManager.addCard(jsonData.user, cardData!));
-        connection.end();
-        break;
-      case 'update':
-        connection.write(cardManager.updateCard(jsonData.user, cardData!));
-        connection.end();
-        break;
-      case 'remove':
-        connection.write(cardManager.removeCard(jsonData.user, jsonData.cardID));
-        connection.end();
-        break;
-      case 'show':
-        connection.write(cardManager.showCard(jsonData.user, jsonData.cardID));
-        connection.end();
-        break;
-      case 'list':
-        connection.write(cardManager.listCollection(jsonData.user));
-        connection.end();
-        break;
-      default:
-        connection.write('Invalid action');
-        connection.end();
-    }
-  });
-
-  connection.on('close', () => {
-    console.log('A client has disconnected.');
-  });
-});
-
-server.listen(60300, () => {
-  console.log('Waiting for clients to connect.');
+  console.log('Received request: ', request.action);
+  switch (request.action) {
+    case 'add':
+      connection.write(cardManager.addCard(request.user, cardData!));
+      break;
+    case 'update':
+      connection.write(cardManager.updateCard(request.user, cardData!));
+      break;
+    case 'remove':
+      connection.write(cardManager.removeCard(request.user, request.cardID));
+      break;
+    case 'show':
+      connection.write(cardManager.showCard(request.user, request.cardID));
+      break;
+    case 'list':
+      connection.write(cardManager.listCollection(request.user));
+      break;
+    default:
+      connection.write(console.log('Invalid action'));
+  }
+  connection.end();
 });

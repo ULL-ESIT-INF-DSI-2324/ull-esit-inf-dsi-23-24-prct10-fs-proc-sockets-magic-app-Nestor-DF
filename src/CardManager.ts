@@ -1,6 +1,7 @@
 import chalk from 'chalk';
 import fs from 'fs';
 import { MagiCard } from './MagiCard.js';
+import { Color } from './MagiCard.js';
 
 /**
  * Class to manage the card collection
@@ -88,7 +89,7 @@ export class CardManager {
 
     if (fs.existsSync(cardFilePath)) {
       const content = fs.readFileSync(cardFilePath).toString();
-      return this.formatCard(content);
+      return this.colorCard(content);
     } else {
       return chalk.red.bold(`Card not found at ${user}'s collection`);
     }
@@ -107,7 +108,7 @@ export class CardManager {
       const files = fs.readdirSync(dirPath);
       files.forEach((file) => {
         const content = fs.readFileSync(`${dirPath}/${file}`).toString();
-        collection += this.formatCard(content) + '\n';
+        collection += this.colorCard(content) + '\n';
       });
       return collection;
     } else {
@@ -138,5 +139,32 @@ export class CardManager {
       content += `Loyalty: ${JSONcard.loyaltyMarks}\n`;
     }
     return content;
+  }
+
+  /**
+   * Method to  a card
+   * @param card The card to color
+   */
+  private colorCard(card: string): string {
+    const JSONcard = JSON.parse(card);
+    const cardInfo = this.formatCard(card);
+    switch (JSONcard.color) {
+      case Color.White:
+        return chalk.white.bold.italic(cardInfo);
+      case Color.Blue:
+        return chalk.blue.bold.italic(cardInfo);
+      case Color.Black:
+        return chalk.black.bold.italic(cardInfo);
+      case Color.Red:
+        return chalk.red.bold.italic(cardInfo);
+      case Color.Green:
+        return chalk.green.bold.italic(cardInfo);
+      case Color.Colorless:
+        return chalk.gray.bold.italic(cardInfo);
+      case Color.Multicolor:
+        return chalk.yellow.bold.italic.bgBlack(cardInfo);
+      default:
+        return chalk.red.bold('Unknown color');
+    }
   }
 }
