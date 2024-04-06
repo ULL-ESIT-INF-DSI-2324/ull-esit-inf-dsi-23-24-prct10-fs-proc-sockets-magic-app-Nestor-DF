@@ -1,7 +1,6 @@
 import chalk from 'chalk';
 import fs from 'fs';
 import { MagiCard } from './MagiCard.js';
-import { Color } from './MagiCard.js';
 
 /**
  * Class to manage the card collection
@@ -26,8 +25,9 @@ export class CardManager {
    * Method to add a card to the collection of an user
    * @param user The user to add the card to
    * @param card The card to add
+   * @returns A string indicating the result of the operation
    */
-  public addCard(user: string, card: MagiCard): void {
+  public addCard(user: string, card: MagiCard): string {
     const userDirectory = `./data/${user}`;
     const cardFilePath = `${userDirectory}/${card.getId()}.json`;
 
@@ -36,10 +36,10 @@ export class CardManager {
     }
 
     if (fs.existsSync(cardFilePath)) {
-      console.log(chalk.red.bold(`A card with the same ID already exists in ${user}'s collection`));
+      return chalk.red.bold(`A card with the same ID already exists in ${user}'s collection`);
     } else {
       fs.writeFileSync(cardFilePath, JSON.stringify(card));
-      console.log(chalk.green.bold(`Card added in ${user}'s collection`));
+      return chalk.green.bold(`Card added in ${user}'s collection`);
     }
   }
 
@@ -47,15 +47,16 @@ export class CardManager {
    * Method to modify a card in the collection of an user
    * @param user The user to modify the card for
    * @param card The card to modify
+   * @returns A string indicating the result of the operation
    */
-  public updateCard(user: string, card: MagiCard): void {
+  public updateCard(user: string, card: MagiCard): string {
     const cardFilePath = `./data/${user}/${card.getId()}.json`;
 
     if (fs.existsSync(cardFilePath)) {
       fs.writeFileSync(cardFilePath, JSON.stringify(card));
-      console.log(chalk.green.bold(`Card updated in ${user}'s collection`));
+      return chalk.green.bold(`Card updated in ${user}'s collection`);
     } else {
-      console.log(chalk.red.bold(`Card not found at ${user}'s collection`));
+      return chalk.red.bold(`Card not found at ${user}'s collection`);
     }
   }
 
@@ -63,15 +64,16 @@ export class CardManager {
    * Method to remove a card in the collection of an user
    * @param user The user to remove the card for
    * @param cardID The card to remove
+   * @returns A string indicating the result of the operation
    */
-  public removeCard(user: string, cardID: number): void {
+  public removeCard(user: string, cardID: number): string {
     const cardFilePath = `./data/${user}/${cardID}.json`;
 
     if (fs.existsSync(cardFilePath)) {
       fs.unlinkSync(cardFilePath);
-      console.log(chalk.green.bold(`Card removed in ${user}'s collection`));
+      return chalk.green.bold(`Card removed in ${user}'s collection`);
     } else {
-      console.log(chalk.red.bold(`Card not found at ${user}'s collection`));
+      return chalk.red.bold(`Card not found at ${user}'s collection`);
     }
   }
 
@@ -79,40 +81,44 @@ export class CardManager {
    * Method to show a card in the collection of an user
    * @param user The user to show the card for
    * @param cardID The card to show
+   * @returns A string representing the card information or an error message
    */
-  public showCard(user: string, cardID: number): void {
+  public showCard(user: string, cardID: number): string {
     const cardFilePath = `./data/${user}/${cardID}.json`;
 
     if (fs.existsSync(cardFilePath)) {
       const content = fs.readFileSync(cardFilePath).toString();
-      this.printCard(content);
+      return this.formatCard(content);
     } else {
-      console.log(chalk.red.bold(`Card not found at ${user}'s collection`));
+      return chalk.red.bold(`Card not found at ${user}'s collection`);
     }
   }
 
   /**
    * Method to list the collection of an user
    * @param user The user of the collection to list
+   * @returns A string representing the collection or an error message
    */
-  public listCollection(user: string): void {
+  public listCollection(user: string): string {
     const dirPath = `./data/${user}`;
 
     if (fs.existsSync(dirPath)) {
+      let collection = '';
       const files = fs.readdirSync(dirPath);
       files.forEach((file) => {
         const content = fs.readFileSync(`${dirPath}/${file}`).toString();
-        this.printCard(content);
+        collection += this.formatCard(content) + '\n';
       });
+      return collection;
     } else {
-      console.log(chalk.red.bold(`User ${user} doesn't have a collection`));
+      return chalk.red.bold(`User ${user} doesn't have a collection`);
     }
   }
 
   /**
    * Method to format a card
    * @param card The card to format
-   * @returns Formated card
+   * @returns Formatted card as a string
    */
   private formatCard(card: string): string {
     const JSONcard = JSON.parse(card);
@@ -132,40 +138,5 @@ export class CardManager {
       content += `Loyalty: ${JSONcard.loyaltyMarks}\n`;
     }
     return content;
-  }
-
-  /**
-   * Method to print a card
-   * @param card The card to print
-   */
-  private printCard(card: string): void {
-    const JSONcard = JSON.parse(card);
-    const cardInfo = this.formatCard(card);
-    switch (JSONcard.color) {
-      case Color.White:
-        console.log(chalk.white.bold.italic(cardInfo));
-        break;
-      case Color.Blue:
-        console.log(chalk.blue.bold.italic(cardInfo));
-        break;
-      case Color.Black:
-        console.log(chalk.black.bold.italic(cardInfo));
-        break;
-      case Color.Red:
-        console.log(chalk.red.bold.italic(cardInfo));
-        break;
-      case Color.Green:
-        console.log(chalk.green.bold.italic(cardInfo));
-        break;
-      case Color.Colorless:
-        console.log(chalk.gray.bold.italic(cardInfo));
-        break;
-      case Color.Multicolor:
-        console.log(chalk.yellow.bold.italic.bgBlack(cardInfo));
-        break;
-      default:
-        console.log(chalk.red.bold('Unknown color'));
-        break;
-    }
   }
 }

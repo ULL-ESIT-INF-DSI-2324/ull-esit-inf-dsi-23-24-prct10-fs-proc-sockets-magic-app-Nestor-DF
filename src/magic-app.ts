@@ -1,9 +1,9 @@
 import yargs from 'yargs';
 import { hideBin } from 'yargs/helpers';
-import { CardManager } from './CardManager.js';
 import { MagiCard, Color, Type, Rarity } from './MagiCard.js';
+import net from 'net';
 
-const cardManager = CardManager.getInstance();
+const client = net.connect({ port: 60300 });
 
 /**
  * Command line interface for the Magic app that adds a card to the collection
@@ -90,7 +90,9 @@ yargs(hideBin(process.argv))
         argv.powerToughness,
         argv.loyalty,
       );
-      cardManager.addCard(argv.user, cardData);
+      const data = JSON.stringify({ action: 'add', user: argv.user, card: cardData });
+      client.write(data);
+      client.end();
     },
   )
   .help().argv;
@@ -180,7 +182,9 @@ yargs(hideBin(process.argv))
         argv.powerToughness,
         argv.loyalty,
       );
-      cardManager.updateCard(argv.user, cardData);
+      const data = JSON.stringify({ action: 'update', user: argv.user, card: cardData });
+      client.write(data);
+      client.end();
     },
   )
   .help().argv;
@@ -205,7 +209,9 @@ yargs(hideBin(process.argv))
       },
     },
     (argv) => {
-      cardManager.removeCard(argv.user, argv.id);
+      const data = JSON.stringify({ action: 'remove', user: argv.user, cardID: argv.id });
+      client.write(data);
+      client.end();
     },
   )
   .help().argv;
@@ -230,7 +236,9 @@ yargs(hideBin(process.argv))
       },
     },
     (argv) => {
-      cardManager.showCard(argv.user, argv.id);
+      const data = JSON.stringify({ action: 'show', user: argv.user, cardID: argv.id });
+      client.write(data);
+      client.end();
     },
   )
   .help().argv;
@@ -250,7 +258,22 @@ yargs(hideBin(process.argv))
       },
     },
     (argv) => {
-      cardManager.listCollection(argv.user);
+      const data = JSON.stringify({ action: 'list', user: argv.user });
+      client.write(data);
+      client.end();
     },
   )
   .help().argv;
+
+let wholeData = '';
+client.on('data', (dataChunk) => {
+  wholeData += dataChunk;
+});
+
+client.on('end', () => {
+  console.log('Received from server:\n', wholeData.toString());
+});
+
+client.on('close', () => {
+  console.log('Connection closed');
+});
