@@ -155,7 +155,6 @@ export class CardManager {
 
                 // Check if all files have been processed
                 if (filesProcessed === files.length) {
-                  console.log(collection);
                   callback(undefined, collection);
                 }
               });
