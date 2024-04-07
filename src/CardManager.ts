@@ -28,20 +28,22 @@ export class CardManager {
    * @param card The card to add
    * @returns A string indicating the result of the operation
    */
-  public addCard(user: string, card: MagiCard): string {
-    const userDirectory = `./data/${user}`;
-    const cardFilePath = `${userDirectory}/${card.getId()}.json`;
+  public addCard(user: string, card: MagiCard, callback: (error: string | undefined, result: string | undefined) => void): void {
+    const cardFilePath = `./data/${user}/${card.getId()}.json`;
 
-    if (!fs.existsSync(userDirectory)) {
-      fs.mkdirSync(userDirectory, { recursive: true });
-    }
-
-    if (fs.existsSync(cardFilePath)) {
-      return chalk.red.bold(`A card with the same ID already exists in ${user}'s collection`);
-    } else {
-      fs.writeFileSync(cardFilePath, JSON.stringify(card));
-      return chalk.green.bold(`Card added in ${user}'s collection`);
-    }
+    fs.stat(cardFilePath, (err) => {
+      if (err) {
+        fs.writeFile(cardFilePath, JSON.stringify(card), (err) => {
+          if (err) {
+            callback(chalk.red.bold(err.message), undefined);
+          } else {
+            callback(undefined, chalk.green.bold(`Card added in ${user}'s collection`));
+          }
+        });
+      } else {
+        callback(chalk.red.bold(`A card with the same ID already exists in ${user}'s collection`), undefined);
+      }
+    });
   }
 
   /**
@@ -50,15 +52,26 @@ export class CardManager {
    * @param card The card to modify
    * @returns A string indicating the result of the operation
    */
-  public updateCard(user: string, card: MagiCard): string {
+  public updateCard(
+    user: string,
+    card: MagiCard,
+    callback: (error: string | undefined, result: string | undefined) => void,
+  ): void {
     const cardFilePath = `./data/${user}/${card.getId()}.json`;
 
-    if (fs.existsSync(cardFilePath)) {
-      fs.writeFileSync(cardFilePath, JSON.stringify(card));
-      return chalk.green.bold(`Card updated in ${user}'s collection`);
-    } else {
-      return chalk.red.bold(`Card not found at ${user}'s collection`);
-    }
+    fs.stat(cardFilePath, (err) => {
+      if (err) {
+        callback(chalk.red.bold(`Card not found at ${user}'s collection`), undefined);
+      } else {
+        fs.writeFile(cardFilePath, JSON.stringify(card), (err) => {
+          if (err) {
+            callback(chalk.red.bold(err.message), undefined);
+          } else {
+            callback(undefined, chalk.green.bold(`Card updated in ${user}'s collection`));
+          }
+        });
+      }
+    });
   }
 
   /**
@@ -67,15 +80,26 @@ export class CardManager {
    * @param cardID The card to remove
    * @returns A string indicating the result of the operation
    */
-  public removeCard(user: string, cardID: number): string {
+  public removeCard(
+    user: string,
+    cardID: number,
+    callback: (error: string | undefined, result: string | undefined) => void,
+  ): void {
     const cardFilePath = `./data/${user}/${cardID}.json`;
 
-    if (fs.existsSync(cardFilePath)) {
-      fs.unlinkSync(cardFilePath);
-      return chalk.green.bold(`Card removed in ${user}'s collection`);
-    } else {
-      return chalk.red.bold(`Card not found at ${user}'s collection`);
-    }
+    fs.stat(cardFilePath, (err) => {
+      if (err) {
+        callback(chalk.red.bold(`Card not found at ${user}'s collection`), undefined);
+      } else {
+        fs.unlink(cardFilePath, (err) => {
+          if (err) {
+            callback(chalk.red.bold(err.message), undefined);
+          } else {
+            callback(undefined, chalk.green.bold(`Card removed in ${user}'s collection`));
+          }
+        });
+      }
+    });
   }
 
   /**
@@ -84,15 +108,22 @@ export class CardManager {
    * @param cardID The card to show
    * @returns A string representing the card information or an error message
    */
-  public showCard(user: string, cardID: number): string {
+  public showCard(user: string, cardID: number, callback: (error: string | undefined, result: string | undefined) => void): void {
     const cardFilePath = `./data/${user}/${cardID}.json`;
 
-    if (fs.existsSync(cardFilePath)) {
-      const content = fs.readFileSync(cardFilePath).toString();
-      return this.colorCard(content);
-    } else {
-      return chalk.red.bold(`Card not found at ${user}'s collection`);
-    }
+    fs.stat(cardFilePath, (err) => {
+      if (err) {
+        callback(chalk.red.bold(`Card not found at ${user}'s collection`), undefined);
+      } else {
+        fs.readFile(cardFilePath, (err, data) => {
+          if (err) {
+            callback(chalk.red.bold(err.message), undefined);
+          } else {
+            callback(undefined, this.colorCard(data.toString()));
+          }
+        });
+      }
+    });
   }
 
   /**
@@ -100,20 +131,39 @@ export class CardManager {
    * @param user The user of the collection to list
    * @returns A string representing the collection or an error message
    */
-  public listCollection(user: string): string {
+  public listCollection(user: string, callback: (error: string | undefined, result: string | undefined) => void): void {
     const dirPath = `./data/${user}`;
 
-    if (fs.existsSync(dirPath)) {
-      let collection = '';
-      const files = fs.readdirSync(dirPath);
-      files.forEach((file) => {
-        const content = fs.readFileSync(`${dirPath}/${file}`).toString();
-        collection += this.colorCard(content) + '\n';
-      });
-      return collection;
-    } else {
-      return chalk.red.bold(`User ${user} doesn't have a collection`);
-    }
+    fs.stat(dirPath, (err) => {
+      if (err) {
+        callback(chalk.red.bold(`User ${user} doesn't have a collection`), undefined);
+      } else {
+        fs.readdir(dirPath, (err, files) => {
+          if (err) {
+            callback(chalk.red.bold(err.message), undefined);
+          } else {
+            let collection = '';
+            let filesProcessed = 0; // Track how many files have been processed
+            files.forEach((file) => {
+              fs.readFile(`${dirPath}/${file}`, (err, data) => {
+                if (err) {
+                  callback(chalk.red.bold(err.message), undefined);
+                  return; // Stop processing further if an error occurs
+                }
+                collection += this.colorCard(data.toString()) + '\n';
+                filesProcessed++;
+
+                // Check if all files have been processed
+                if (filesProcessed === files.length) {
+                  console.log(collection);
+                  callback(undefined, collection);
+                }
+              });
+            });
+          }
+        });
+      }
+    });
   }
 
   /**

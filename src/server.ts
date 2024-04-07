@@ -25,22 +25,57 @@ eventEmitterServer.on('request', (request, connection) => {
   console.log('Received request: ', request.action);
   switch (request.action) {
     case 'add':
-      connection.write(cardManager.addCard(request.user, cardData!));
+      cardManager.addCard(request.user, cardData!, (error, result) => {
+        if (error) {
+          connection.write(error);
+        } else {
+          connection.write(result);
+        }
+        connection.end();
+      });
       break;
     case 'update':
-      connection.write(cardManager.updateCard(request.user, cardData!));
+      cardManager.updateCard(request.user, cardData!, (error, result) => {
+        if (error) {
+          connection.write(error);
+        } else {
+          connection.write(result);
+        }
+        connection.end();
+      });
       break;
     case 'remove':
-      connection.write(cardManager.removeCard(request.user, request.cardID));
+      cardManager.removeCard(request.user, request.cardID, (error, result) => {
+        if (error) {
+          connection.write(error);
+        } else {
+          connection.write(result);
+        }
+        connection.end();
+      });
       break;
     case 'show':
-      connection.write(cardManager.showCard(request.user, request.cardID));
+      cardManager.showCard(request.user, request.cardID, (error, result) => {
+        if (error) {
+          connection.write(error);
+        } else {
+          connection.write(result);
+        }
+        connection.end();
+      });
       break;
     case 'list':
-      connection.write(cardManager.listCollection(request.user));
+      cardManager.listCollection(request.user, (error, result) => {
+        if (error) {
+          connection.write(error);
+        } else {
+          connection.write(result);
+        }
+        connection.end();
+      });
       break;
     default:
       connection.write(console.log('Invalid action'));
+      connection.end();
   }
-  connection.end();
 });
