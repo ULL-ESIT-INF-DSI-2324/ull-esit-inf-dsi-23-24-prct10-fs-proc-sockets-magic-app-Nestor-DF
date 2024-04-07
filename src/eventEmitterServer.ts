@@ -14,13 +14,13 @@ export class EventEmitterServer extends EventEmitter {
         wholeData += dataChunk;
 
         console.log('Received from client:', dataChunk.toString());
-        if (wholeData.includes('CLOSED')) {
+        if (wholeData.includes('CLOSED"}')) {
           this.emit('request', JSON.parse(wholeData), connection);
         }
       });
 
       connection.on('close', () => {
-        console.log('A client has disconnected.');
+        console.log('A client has disconnected.\n');
       });
     });
 
