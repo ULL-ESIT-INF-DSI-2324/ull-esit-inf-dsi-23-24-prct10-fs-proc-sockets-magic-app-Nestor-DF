@@ -26,7 +26,7 @@ export class CardManager {
    * Method to add a card to the collection of an user
    * @param user The user to add the card to
    * @param card The card to add
-   * @returns A string indicating the result of the operation
+   * @callback
    */
   public addCard(user: string, card: MagiCard, callback: (error: string | undefined, result: string | undefined) => void): void {
     const cardFilePath = `./data/${user}/${card.getId()}.json`;
@@ -50,7 +50,7 @@ export class CardManager {
    * Method to modify a card in the collection of an user
    * @param user The user to modify the card for
    * @param card The card to modify
-   * @returns A string indicating the result of the operation
+   * @callback
    */
   public updateCard(
     user: string,
@@ -78,7 +78,7 @@ export class CardManager {
    * Method to remove a card in the collection of an user
    * @param user The user to remove the card for
    * @param cardID The card to remove
-   * @returns A string indicating the result of the operation
+   * @callback
    */
   public removeCard(
     user: string,
@@ -106,7 +106,7 @@ export class CardManager {
    * Method to show a card in the collection of an user
    * @param user The user to show the card for
    * @param cardID The card to show
-   * @returns A string representing the card information or an error message
+   * @callback
    */
   public showCard(user: string, cardID: number, callback: (error: string | undefined, result: string | undefined) => void): void {
     const cardFilePath = `./data/${user}/${cardID}.json`;
@@ -129,7 +129,7 @@ export class CardManager {
   /**
    * Method to list the collection of an user
    * @param user The user of the collection to list
-   * @returns A string representing the collection or an error message
+   * @callback
    */
   public listCollection(user: string, callback: (error: string | undefined, result: string | undefined) => void): void {
     const dirPath = `./data/${user}`;
@@ -191,7 +191,7 @@ export class CardManager {
   }
 
   /**
-   * Method to  a card
+   * Method to color a card
    * @param card The card to color
    */
   private colorCard(card: string): string {
