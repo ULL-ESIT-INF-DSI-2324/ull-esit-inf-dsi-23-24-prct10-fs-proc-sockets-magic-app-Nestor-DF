@@ -109,6 +109,7 @@ export class CardManager {
 Se puede apreciar como uso el patrón de callbacks de tal manera que si hay un error la variable *error* contendrá una string con la descripción del error mientras *result* será undefined. Si todo va bien *error* contendrá undefined y *result* contendrá un mensaje con el resultado.
 
 A continuación, modifiqué el programa pricipal para que actúe como cliente usando el módulo net de Node.js:
+
 ```ts
 const client = net.connect({ port: 60300 });
 
@@ -151,7 +152,7 @@ client.on('close', () => {
 });
 ```
 
-Se puede observar como uso la función connect del módulo net para conectarme al servidor a través del puert 60300 y como se hace un **client.write(data)** dentro del manejador de comandos de yargs tras obtener la información y *parsearla* usando **JSON.stringify**. El resto de comandos siguen la misma la estructura.
+Se puede observar como uso la función connect del módulo net para conectarme al servidor a través del puerto 60300 y como se hace un **client.write(data)** dentro del manejador de comandos de yargs tras obtener la información y *parsearla* usando **JSON.stringify**. El resto de comandos siguen la misma la estructura.
 
 Por otro lado, el cliente se encarga de reconstruir la respuesta del servidor en caso de que esta venga dada en **varios** eventos *data*. Cuando el servidor cierre la conexión tras enviar la respuesta el cliente la gestiona a través del evento *end* mostrando los resultados de la petición.
 
