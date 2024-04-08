@@ -1,7 +1,6 @@
 import chalk from 'chalk';
 import fs from 'fs';
-import { MagiCard } from './MagiCard.js';
-import { Color } from './MagiCard.js';
+import { MagiCard, Color } from './MagiCard.js';
 
 /**
  * Class to manage the card collection
