@@ -21,19 +21,265 @@
 
 
 ## **Introducción**
-En esta práctica se desarrollará una aplicación cliente-servidor para gestionar información sobre cartas del juego Magic: The Gathering pertenecientes a un usuario específico. La aplicación permitirá llevar a cabo diversas operaciones desde el cliente, como añadir, modificar, eliminar, listar y leer la información asociada a estas cartas. Toda la información de cada carta se almacenará en formato JSON en el sistema de archivos del servidor. Además, se enfatiza que la interacción con la aplicación se realizará exclusivamente a través de la línea de comandos, sin la existencia de un menú interactivo para simplificar la experiencia de usuario.
-
+En esta práctica se desarrollará una aplicación cliente-servidor para gestionar información sobre cartas del juego Magic: The Gathering. La aplicación permitirá llevar a cabo diversas operaciones desde el cliente, como añadir, modificar, eliminar, listar y leer la información asociada a estas cartas. Toda la información de cada carta se almacenará en formato JSON en el sistema de archivos del servidor. Además, se enfatiza que la interacción con la aplicación se realizará exclusivamente a través de la línea de comandos.
 
 
 
 
 ## **Desarrollo**
+Partiendo de la clase que había creado en la la práctica anterior cambié todos los métodos síncronos por métodos **asíncronos basados en callbacks**:
+
+```ts
+export class CardManager {
+  private static instance: CardManager;
+
+  private constructor() {}
+
+  public static getInstance(): CardManager {
+    if (!CardManager.instance) {
+      CardManager.instance = new CardManager();
+    }
+    return CardManager.instance;
+  }
+
+  public addCard(user: string, card: MagiCard, callback: (error: string | undefined, result: string | undefined) => void): void {
+    const cardFilePath = `./data/${user}/${card.getId()}.json`;
+
+    fs.stat(cardFilePath, (err) => {
+      if (err) {
+        fs.writeFile(cardFilePath, JSON.stringify(card), (err) => {
+          if (err) {
+            callback(chalk.red.bold(err.message), undefined);
+          } else {
+            callback(undefined, chalk.green.bold(`Card added in ${user}'s collection`));
+          }
+        });
+      } else {
+        callback(chalk.red.bold(`A card with the same ID already exists in ${user}'s collection`), undefined);
+      }
+    });
+  }
+
+  public updateCard(
+    user: string,
+    card: MagiCard,
+    callback: (error: string | undefined, result: string | undefined) => void,
+  ): void {
+    const cardFilePath = `./data/${user}/${card.getId()}.json`;
+
+    fs.stat(cardFilePath, (err) => {
+      if (err) {
+        callback(chalk.red.bold(`Card not found at ${user}'s collection`), undefined);
+      } else {
+        fs.writeFile(cardFilePath, JSON.stringify(card), (err) => {
+          if (err) {
+            callback(chalk.red.bold(err.message), undefined);
+          } else {
+            callback(undefined, chalk.green.bold(`Card updated in ${user}'s collection`));
+          }
+        });
+      }
+    });
+  }
+
+  public removeCard(
+    user: string,
+    cardID: number,
+    callback: (error: string | undefined, result: string | undefined) => void,
+  ): void {
+    const cardFilePath = `./data/${user}/${cardID}.json`;
+
+    fs.stat(cardFilePath, (err) => {
+      if (err) {
+        callback(chalk.red.bold(`Card not found at ${user}'s collection`), undefined);
+      } else {
+        fs.unlink(cardFilePath, (err) => {
+          if (err) {
+            callback(chalk.red.bold(err.message), undefined);
+          } else {
+            callback(undefined, chalk.green.bold(`Card removed in ${user}'s collection`));
+          }
+        });
+      }
+    });
+
+// Demás código
+```
+
+Se puede apreciar como uso el patrón de callbacks de tal manera que si hay un error la variable *error* contendrá una string con la descripción del error mientras *result* será undefined. Si todo va bien *error* contendrá undefined y *result* contendrá un mensaje con el resultado.
+
+A continuación, modifiqué el programa pricipal para que actúe como cliente usando el módulo net de Node.js:
+```ts
+const client = net.connect({ port: 60300 });
+
+yargs(hideBin(process.argv))
+  .command(
+    'show',
+    'Show a card of the collection',
+    {
+      user: {
+        description: 'user name',
+        type: 'string',
+        demandOption: true,
+      },
+      id: {
+        description: 'Card ID',
+        type: 'number',
+        demandOption: true,
+      },
+    },
+    (argv) => {
+      const data = JSON.stringify({ action: 'show', user: argv.user, cardID: argv.id, close: 'CLOSED' });
+      client.write(data);
+    },
+  )
+  .help().argv;
+
+  // Demás código para manejar las otras acciones
+
+let wholeData = '';
+client.on('data', (dataChunk) => {
+  wholeData += dataChunk;
+});
+
+client.on('end', () => {
+  console.log('Received from server:\n', wholeData.toString());
+});
+
+client.on('close', () => {
+  console.log('Connection closed');
+});
+```
+
+Se puede observar como uso la función connect del módulo net para conectarme al servidor a través del puert 60300 y como se hace un **client.write(data)** dentro del manejador de comandos de yargs tras obtener la información y *parsearla* usando **JSON.stringify**. El resto de comandos siguen la misma la estructura.
+
+Por otro lado, el cliente se encarga de reconstruir la respuesta del servidor en caso de que esta venga dada en **varios** eventos *data*. Cuando el servidor cierre la conexión tras enviar la respuesta el cliente la gestiona a través del evento *end* mostrando los resultados de la petición.
+
+Ya yéndonos al lado del servidor, implementé una clase que **hereda** de **EventEmitter** para así poder emitir un evento propio **request** en el socket del servidor y detectar cuando un cliente ha enviado una petición completa.
+
+```ts
+export class EventEmitterSocket extends EventEmitter {
+  constructor(connection: EventEmitter) {
+    super();
+    let wholeData = '';
+    connection.on('data', (dataChunk) => {
+      wholeData += dataChunk;
+
+      console.log('Received from client:', dataChunk.toString());
+      if (wholeData.includes('CLOSED"}')) {
+        this.emit('request', JSON.parse(wholeData), connection);
+      }
+    });
+
+    connection.on('close', () => {
+      this.emit('close', connection);
+    });
+  }
+}
+```
+
+La manera más sencilla que se me ocurrió de detectar cuando un mensaje ya ha sido enviado por completo por el cliente fue añadirle un atributo CLOSED al final del json que envía el cliente. De esta forma cuando el servidor lea la cadena **CLOSED"}** significa que ha llegado el final de la petición. Seguí la misma lógica que en el ejemplo de clase donde se usaba el caracter **\n** para detectar el final de una petición.
+
+En lo que es el servidor en sí, lo creo con el método **createServer** de net y dentro de manejador uso el único parámetro *connection* que es un net.Socket (un EventEmitter) para pasárselo a la clase **EventEmitterSocket**
+
+Después, uso el objeto que me crea mi clase **EventEmitterSocket** para poder gestionar el evento **request**. Dentro del manejador de **request** tengo un **switch** que comprueba el campo ***request.action*** para así poder gestionar las distintas acciones posibles que puede realizar el servidor. Las acciones están encapsuladas en la clase **CardManager** que sigue el patrón **callback** en sus métodos. Al finalizar la ejecución de los manejadores y por tanto **finalizar** la **respuesta** del servidor se cierra el socket con un **end()** para *notificar al cliente de que la respuesta está completa.*
+
+```ts
+const server = net.createServer((connection) => {
+  console.log('A client has connected.');
+  const serverSocket = new EventEmitterSocket(connection);
+
+  serverSocket.on('close', () => {
+    console.log('A client has disconnected.\n');
+  });
+
+  serverSocket.on('request', (request, connection) => {
+    let cardData;
+    if (request.action === 'add' || request.action === 'update') {
+      cardData = new MagiCard(
+        request.card.id,
+        request.card.name,
+        request.card.manaCost,
+        request.card.color,
+        request.card.cardType,
+        request.card.rarity,
+        request.card.rulesText,
+        request.card.marketValue,
+        request.card.powerToughness,
+        request.card.loyalty,
+      );
+    }
+
+    console.log('Received request: ', request.action);
+    switch (request.action) {
+      case 'add':
+        cardManager.addCard(request.user, cardData!, (error, result) => {
+          if (error) {
+            connection.write(error);
+          } else {
+            connection.write(result);
+          }
+          connection.end();
+        });
+        break;
+      case 'update':
+        cardManager.updateCard(request.user, cardData!, (error, result) => {
+          if (error) {
+            connection.write(error);
+          } else {
+            connection.write(result);
+          }
+          connection.end();
+        });
+        break;
+      case 'remove':
+        cardManager.removeCard(request.user, request.cardID, (error, result) => {
+          if (error) {
+            connection.write(error);
+          } else {
+            connection.write(result);
+          }
+          connection.end();
+        });
+        break;
+      case 'show':
+        cardManager.showCard(request.user, request.cardID, (error, result) => {
+          if (error) {
+            connection.write(error);
+          } else {
+            connection.write(result);
+          }
+          connection.end();
+        });
+        break;
+      case 'list':
+        cardManager.listCollection(request.user, (error, result) => {
+          if (error) {
+            connection.write(error);
+          } else {
+            connection.write(result);
+          }
+          connection.end();
+        });
+        break;
+      default:
+        connection.write(console.log('Invalid action'));
+        connection.end();
+    }
+  });
+});
+
+server.listen(60300, () => {
+  console.log('Waiting for clients to connect.');
+});
+```
 
 
 
 
 ## **Conclusiones**
 En conclusión, esta práctica me ha proporcionado una comprensión más profunda de las capacidades de Node.js, desde la manipulación de eventos asíncronos hasta la interacción con el sistema de archivos y la creación de aplicaciones de red, además de haber reforzado el uso de herramientas como yargs y chalk para mejorar la experiencia del usuario en la línea de comandos.
+
 
 
 

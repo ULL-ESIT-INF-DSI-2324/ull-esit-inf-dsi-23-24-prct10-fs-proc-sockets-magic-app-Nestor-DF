@@ -1,6 +1,10 @@
 import { EventEmitter } from 'events';
 
-export class EventEmitterServer extends EventEmitter {
+/**
+ * Class to manage custom events of the server socket 
+ * Emits a request event when detects the client has send the full petititon
+ */
+export class EventEmitterSocket extends EventEmitter {
   constructor(connection: EventEmitter) {
     super();
     let wholeData = '';

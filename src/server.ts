@@ -1,13 +1,13 @@
 import { MagiCard } from './MagiCard.js';
 import { CardManager } from './CardManager.js';
-import { EventEmitterServer } from './eventEmitterServer.js';
+import { EventEmitterSocket } from './EventEmitterSocket.js';
 import net from 'net';
 
 const cardManager = CardManager.getInstance();
 
 const server = net.createServer((connection) => {
   console.log('A client has connected.');
-  const serverSocket = new EventEmitterServer(connection);
+  const serverSocket = new EventEmitterSocket(connection);
 
   serverSocket.on('close', () => {
     console.log('A client has disconnected.\n');
