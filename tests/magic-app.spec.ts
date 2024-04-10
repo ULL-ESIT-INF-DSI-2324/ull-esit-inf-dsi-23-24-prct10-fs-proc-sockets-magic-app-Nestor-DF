@@ -1,7 +1,6 @@
 import 'mocha';
 import { expect } from 'chai';
 import { formatCardString, colorCard } from '../src/formatCards.js';
-const fs = require('fs');
 
 describe('formatCardString', () => {
   it('should format the card string correctly', () => {
@@ -24,8 +23,6 @@ describe('colorCard', () => {
       '\u001b[34;1;3mID: 1\nName: Card Name\nMana cost: 2\nColor: Blue\nType: Creature\nRarity: Common\nRules text: Some rules text\nMarket value: 10\nPower/Toughness: 2/2\n\u001b[0m';
 
     const result = colorCard(card);
-
-    fs.writeFileSync('./miua/file.txt', result);
 
     expect(result).to.be.equal(result);
   });
