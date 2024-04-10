@@ -43,19 +43,26 @@ export class CardManager {
   }
 
   public addCard(user: string, card: MagiCard, callback: (error: string | undefined, result: string | undefined) => void): void {
-    const cardFilePath = `./data/${user}/${card.getId()}.json`;
+    const userDirectory = `./data/${user}`;
+    const cardFilePath = `${userDirectory}/${card.getId()}.json`;
 
-    fs.stat(cardFilePath, (err) => {
+    fs.mkdir(userDirectory, { recursive: true }, (err) => {
       if (err) {
-        fs.writeFile(cardFilePath, JSON.stringify(card), (err) => {
+        callback(err.message, undefined);
+      } else {
+        fs.stat(cardFilePath, (err) => {
           if (err) {
-            callback(chalk.red.bold(err.message), undefined);
+            fs.writeFile(cardFilePath, JSON.stringify(card), (err) => {
+              if (err) {
+                callback(err.message, undefined);
+              } else {
+                callback(undefined, `Card added in ${user}'s collection`);
+              }
+            });
           } else {
-            callback(undefined, chalk.green.bold(`Card added in ${user}'s collection`));
+            callback(`A card with the same ID already exists in ${user}'s collection`, undefined);
           }
         });
-      } else {
-        callback(chalk.red.bold(`A card with the same ID already exists in ${user}'s collection`), undefined);
       }
     });
   }
@@ -69,41 +76,20 @@ export class CardManager {
 
     fs.stat(cardFilePath, (err) => {
       if (err) {
-        callback(chalk.red.bold(`Card not found at ${user}'s collection`), undefined);
+        callback(`Card not found at ${user}'s collection`, undefined);
       } else {
         fs.writeFile(cardFilePath, JSON.stringify(card), (err) => {
           if (err) {
-            callback(chalk.red.bold(err.message), undefined);
+            callback(err.message, undefined);
           } else {
-            callback(undefined, chalk.green.bold(`Card updated in ${user}'s collection`));
+            callback(undefined, `Card updated in ${user}'s collection`);
           }
         });
       }
     });
   }
-
-  public removeCard(
-    user: string,
-    cardID: number,
-    callback: (error: string | undefined, result: string | undefined) => void,
-  ): void {
-    const cardFilePath = `./data/${user}/${cardID}.json`;
-
-    fs.stat(cardFilePath, (err) => {
-      if (err) {
-        callback(chalk.red.bold(`Card not found at ${user}'s collection`), undefined);
-      } else {
-        fs.unlink(cardFilePath, (err) => {
-          if (err) {
-            callback(chalk.red.bold(err.message), undefined);
-          } else {
-            callback(undefined, chalk.green.bold(`Card removed in ${user}'s collection`));
-          }
-        });
-      }
-    });
-
-// Demás código
+  // Demás código
+}
 ```
 
 Se puede apreciar como uso el patrón de callbacks de tal manera que si hay un error la variable *error* contendrá una string con la descripción del error mientras *result* será undefined. Si todo va bien *error* contendrá undefined y *result* contendrá un mensaje con el resultado.
@@ -144,7 +130,23 @@ client.on('data', (dataChunk) => {
 });
 
 client.on('end', () => {
-  console.log('Received from server:\n', wholeData.toString());
+  console.log('Received from server:\n');
+  const answer = JSON.parse(wholeData);
+  let receivedData: string[];
+  switch (answer.status) {
+    case 'Error':
+      console.log(chalk.red.bold(answer.answer));
+      break;
+    case 'Success':
+      console.log(chalk.green.bold(answer.answer));
+      break;
+    case 'CardsReceived':
+      receivedData = JSON.parse(answer.answer);
+      receivedData.forEach((card: string) => {
+        console.log(colorCard(card));
+      });
+      break;
+  }
 });
 
 client.on('close', () => {
@@ -152,9 +154,58 @@ client.on('close', () => {
 });
 ```
 
-Se puede observar como uso la función connect del módulo net para conectarme al servidor a través del puerto 60300 y como se hace un **client.write(data)** dentro del manejador de comandos de yargs tras obtener la información y *parsearla* usando **JSON.stringify**. El resto de comandos siguen la misma la estructura.
+Se puede observar como uso la función connect del módulo net para conectarme al servidor a través del puerto 60300 y como se hace un **client.write(data)** dentro del manejador de comandos de yargs tras obtener la información y ***serializarla*** usando **JSON.stringify**. El resto de comandos siguen la misma la estructura.
 
-Por otro lado, el cliente se encarga de reconstruir la respuesta del servidor en caso de que esta venga dada en **varios** eventos *data*. Cuando el servidor cierre la conexión tras enviar la respuesta el cliente la gestiona a través del evento *end* mostrando los resultados de la petición.
+Por otro lado, el cliente se encarga de reconstruir la respuesta del servidor en caso de que esta venga dada en **varios** eventos *data*. Cuando el servidor cierre la conexión tras enviar la respuesta el cliente la gestiona a través del evento *end* mostrando los resultados de la petición. Se distinguen tres casos claros que vienen dados por el campo **status** de la respuesta del servidor:
+- Error: Ocurre cuando se produce un error en el servidor
+- Sucess: Ocurre cuando todo va bien en la petición
+- CardsReceived: Ocurre en los casos en los que la respuesta del servidor son cartas, es decir, cuando el cliente hace peticiones de *show* o *list* sobre su colección de cartas.
+
+Se recalca como el cliente procesa la ***respuesta***, **la cual es una representación en cadena de un objeto JSON válido**, deserializándola primero con **JSON.parse** y después haciendo uso del paquete **chalk** para mostrar por consola los mensajes. Para mostrar las cartas se usan dos funciones específicas:
+```ts
+export function formatCardString(card: string): string {
+  const JSONcard = JSON.parse(card);
+  let content = '';
+  content += `ID: ${JSONcard.id}\n`;
+  content += `Name: ${JSONcard.name}\n`;
+  content += `Mana cost: ${JSONcard.manaCost}\n`;
+  content += `Color: ${JSONcard.color}\n`;
+  content += `Type: ${JSONcard.type}\n`;
+  content += `Rarity: ${JSONcard.rarity}\n`;
+  content += `Rules text: ${JSONcard.rulesText}\n`;
+  content += `Market value: ${JSONcard.marketValue}\n`;
+  if (JSONcard.type === 'Creature') {
+    content += `Power/Toughness: ${JSONcard.powerAndToughness}\n`;
+  }
+  if (JSONcard.type === 'Planeswalker') {
+    content += `Loyalty: ${JSONcard.loyaltyMarks}\n`;
+  }
+  return content;
+}
+
+export function colorCard(card: string): string {
+  const JSONcard = JSON.parse(card);
+  const cardInfo = formatCardString(card);
+  switch (JSONcard.color) {
+    case Color.White:
+      return chalk.white.bold.italic(cardInfo);
+    case Color.Blue:
+      return chalk.blue.bold.italic(cardInfo);
+    case Color.Black:
+      return chalk.black.bold.italic(cardInfo);
+    case Color.Red:
+      return chalk.red.bold.italic(cardInfo);
+    case Color.Green:
+      return chalk.green.bold.italic(cardInfo);
+    case Color.Colorless:
+      return chalk.gray.bold.italic(cardInfo);
+    case Color.Multicolor:
+      return chalk.yellow.bold.italic.bgBlack(cardInfo);
+    default:
+      return chalk.bold('Unknown color');
+  }
+} 
+```
 
 Ya yéndonos al lado del servidor, implementé una clase que **hereda** de **EventEmitter** para así poder emitir un evento propio **request** en el socket del servidor y detectar cuando un cliente ha enviado una petición completa.
 
@@ -216,9 +267,9 @@ const server = net.createServer((connection) => {
       case 'add':
         cardManager.addCard(request.user, cardData!, (error, result) => {
           if (error) {
-            connection.write(error);
+            connection.write(JSON.stringify({ status: 'Error', answer: error }));
           } else {
-            connection.write(result);
+            connection.write(JSON.stringify({ status: 'Success', answer: result }));
           }
           connection.end();
         });
@@ -226,9 +277,9 @@ const server = net.createServer((connection) => {
       case 'update':
         cardManager.updateCard(request.user, cardData!, (error, result) => {
           if (error) {
-            connection.write(error);
+            connection.write(JSON.stringify({ status: 'Error', answer: error }));
           } else {
-            connection.write(result);
+            connection.write(JSON.stringify({ status: 'Success', answer: result }));
           }
           connection.end();
         });
@@ -236,9 +287,9 @@ const server = net.createServer((connection) => {
       case 'remove':
         cardManager.removeCard(request.user, request.cardID, (error, result) => {
           if (error) {
-            connection.write(error);
+            connection.write(JSON.stringify({ status: 'Error', answer: error }));
           } else {
-            connection.write(result);
+            connection.write(JSON.stringify({ status: 'Success', answer: result }));
           }
           connection.end();
         });
@@ -246,9 +297,9 @@ const server = net.createServer((connection) => {
       case 'show':
         cardManager.showCard(request.user, request.cardID, (error, result) => {
           if (error) {
-            connection.write(error);
+            connection.write(JSON.stringify({ status: 'Error', answer: error }));
           } else {
-            connection.write(result);
+            connection.write(JSON.stringify({ status: 'CardsReceived', answer: result }));
           }
           connection.end();
         });
@@ -256,9 +307,9 @@ const server = net.createServer((connection) => {
       case 'list':
         cardManager.listCollection(request.user, (error, result) => {
           if (error) {
-            connection.write(error);
+            connection.write(JSON.stringify({ status: 'Error', answer: error }));
           } else {
-            connection.write(result);
+            connection.write(JSON.stringify({ status: 'CardsReceived', answer: result }));
           }
           connection.end();
         });

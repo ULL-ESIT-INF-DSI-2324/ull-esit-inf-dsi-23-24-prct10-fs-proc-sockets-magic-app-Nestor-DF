@@ -27,19 +27,26 @@ export class CardManager {
    * @callback
    */
   public addCard(user: string, card: MagiCard, callback: (error: string | undefined, result: string | undefined) => void): void {
-    const cardFilePath = `./data/${user}/${card.getId()}.json`;
+    const userDirectory = `./data/${user}`;
+    const cardFilePath = `${userDirectory}/${card.getId()}.json`;
 
-    fs.stat(cardFilePath, (err) => {
+    fs.mkdir(userDirectory, { recursive: true }, (err) => {
       if (err) {
-        fs.writeFile(cardFilePath, JSON.stringify(card), (err) => {
+        callback(err.message, undefined);
+      } else {
+        fs.stat(cardFilePath, (err) => {
           if (err) {
-            callback(err.message, undefined);
+            fs.writeFile(cardFilePath, JSON.stringify(card), (err) => {
+              if (err) {
+                callback(err.message, undefined);
+              } else {
+                callback(undefined, `Card added in ${user}'s collection`);
+              }
+            });
           } else {
-            callback(undefined, `Card added in ${user}'s collection`);
+            callback(`A card with the same ID already exists in ${user}'s collection`, undefined);
           }
         });
-      } else {
-        callback(`A card with the same ID already exists in ${user}'s collection`, undefined);
       }
     });
   }
