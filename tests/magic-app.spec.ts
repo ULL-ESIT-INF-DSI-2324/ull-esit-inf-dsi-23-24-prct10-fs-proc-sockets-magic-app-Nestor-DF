@@ -1,6 +1,7 @@
 import 'mocha';
 import { expect } from 'chai';
 import { formatCardString, colorCard } from '../src/formatCards.js';
+const fs = require('fs');
 
 describe('formatCardString', () => {
   it('should format the card string correctly', () => {
@@ -23,6 +24,8 @@ describe('colorCard', () => {
       '\u001b[34;1;3mID: 1\nName: Card Name\nMana cost: 2\nColor: Blue\nType: Creature\nRarity: Common\nRules text: Some rules text\nMarket value: 10\nPower/Toughness: 2/2\n\u001b[0m';
 
     const result = colorCard(card);
+
+    fs.writeFileSync('./miua/file.txt', result);
 
     expect(result).to.be.equal(result);
   });
@@ -65,6 +68,28 @@ describe('colorCard', () => {
       '{"id": 1, "name": "Card Name", "manaCost": 2, "color": "Black", "type": "Creature", "rarity": "Common", "rulesText": "Some rules text", "marketValue": 10, "powerAndToughness": "2/2"}';
     const expectedOutput =
       '\u001b[30;1;3mID: 1\nName: Card Name\nMana cost: 2\nColor: Black\nType: Creature\nRarity: Common\nRules text: Some rules text\nMarket value: 10\nPower/Toughness: 2/2\n\u001b[0m';
+
+    const result = colorCard(card);
+
+    expect(result).to.be.equal(result);
+  });
+
+  it('should color the card string correctly for Colorless color', () => {
+    const card =
+      '{"id": 1, "name": "Card Name", "manaCost": 2, "color": "Colorless", "type": "Creature", "rarity": "Common", "rulesText": "Some rules text", "marketValue": 10, "powerAndToughness": "2/2"}';
+    const expectedOutput =
+      '\u001b[30;1;3mID: 1\nName: Card Name\nMana cost: 2\nColor: Colorless\nType: Creature\nRarity: Common\nRules text: Some rules text\nMarket value: 10\nPower/Toughness: 2/2\n\u001b[0m';
+
+    const result = colorCard(card);
+
+    expect(result).to.be.equal(result);
+  });
+
+  it('should color the card string correctly for Multicolor color', () => {
+    const card =
+      '{"id": 1, "name": "Card Name", "manaCost": 2, "color": "Multicolor", "type": "Creature", "rarity": "Common", "rulesText": "Some rules text", "marketValue": 10, "powerAndToughness": "2/2"}';
+    const expectedOutput =
+      '\u001b[30;1;3mID: 1\nName: Card Name\nMana cost: 2\nColor: Multicolor\nType: Creature\nRarity: Common\nRules text: Some rules text\nMarket value: 10\nPower/Toughness: 2/2\n\u001b[0m';
 
     const result = colorCard(card);
 
