@@ -1,6 +1,5 @@
-import chalk from 'chalk';
 import fs from 'fs';
-import { MagiCard, Color } from './MagiCard.js';
+import { MagiCard } from './MagiCard.js';
 
 /**
  * Class to manage the card collection
@@ -34,13 +33,13 @@ export class CardManager {
       if (err) {
         fs.writeFile(cardFilePath, JSON.stringify(card), (err) => {
           if (err) {
-            callback(chalk.red.bold(err.message), undefined);
+            callback(err.message, undefined);
           } else {
-            callback(undefined, chalk.green.bold(`Card added in ${user}'s collection`));
+            callback(undefined, `Card added in ${user}'s collection`);
           }
         });
       } else {
-        callback(chalk.red.bold(`A card with the same ID already exists in ${user}'s collection`), undefined);
+        callback(`A card with the same ID already exists in ${user}'s collection`, undefined);
       }
     });
   }
@@ -60,13 +59,13 @@ export class CardManager {
 
     fs.stat(cardFilePath, (err) => {
       if (err) {
-        callback(chalk.red.bold(`Card not found at ${user}'s collection`), undefined);
+        callback(`Card not found at ${user}'s collection`, undefined);
       } else {
         fs.writeFile(cardFilePath, JSON.stringify(card), (err) => {
           if (err) {
-            callback(chalk.red.bold(err.message), undefined);
+            callback(err.message, undefined);
           } else {
-            callback(undefined, chalk.green.bold(`Card updated in ${user}'s collection`));
+            callback(undefined, `Card updated in ${user}'s collection`);
           }
         });
       }
@@ -88,13 +87,13 @@ export class CardManager {
 
     fs.stat(cardFilePath, (err) => {
       if (err) {
-        callback(chalk.red.bold(`Card not found at ${user}'s collection`), undefined);
+        callback(`Card not found at ${user}'s collection`, undefined);
       } else {
         fs.unlink(cardFilePath, (err) => {
           if (err) {
-            callback(chalk.red.bold(err.message), undefined);
+            callback(err.message, undefined);
           } else {
-            callback(undefined, chalk.green.bold(`Card removed in ${user}'s collection`));
+            callback(undefined, `Card removed in ${user}'s collection`);
           }
         });
       }
@@ -112,13 +111,15 @@ export class CardManager {
 
     fs.stat(cardFilePath, (err) => {
       if (err) {
-        callback(chalk.red.bold(`Card not found at ${user}'s collection`), undefined);
+        callback(`Card not found at ${user}'s collection`, undefined);
       } else {
         fs.readFile(cardFilePath, (err, data) => {
           if (err) {
-            callback(chalk.red.bold(err.message), undefined);
+            callback(err.message, undefined);
           } else {
-            callback(undefined, this.colorCard(data.toString()));
+            // Por compatibilidad con el método listCollection, así el cliente no se preocupa por el número de cartas (formato)
+            const card = [data.toString()];
+            callback(undefined, JSON.stringify(card));
           }
         });
       }
@@ -135,26 +136,26 @@ export class CardManager {
 
     fs.stat(dirPath, (err) => {
       if (err) {
-        callback(chalk.red.bold(`User ${user} doesn't have a collection`), undefined);
+        callback(`User ${user} doesn't have a collection`, undefined);
       } else {
         fs.readdir(dirPath, (err, files) => {
           if (err) {
-            callback(chalk.red.bold(err.message), undefined);
+            callback(err.message, undefined);
           } else {
-            let collection = '';
+            const collection: string[] = [];
             let filesProcessed = 0; // Track how many files have been processed
             files.forEach((file) => {
               fs.readFile(`${dirPath}/${file}`, (err, data) => {
                 if (err) {
-                  callback(chalk.red.bold(err.message), undefined);
+                  callback(err.message, undefined);
                   return; // Stop processing further if an error occurs
                 }
-                collection += this.colorCard(data.toString()) + '\n';
+                collection.push(data.toString());
                 filesProcessed++;
 
                 // Check if all files have been processed
                 if (filesProcessed === files.length) {
-                  callback(undefined, collection);
+                  callback(undefined, JSON.stringify(collection));
                 }
               });
             });
@@ -162,57 +163,5 @@ export class CardManager {
         });
       }
     });
-  }
-
-  /**
-   * Method to format a card
-   * @param card The card to format
-   * @returns Formatted card as a string
-   */
-  private formatCard(card: string): string {
-    const JSONcard = JSON.parse(card);
-    let content = '';
-    content += `ID: ${JSONcard.id}\n`;
-    content += `Name: ${JSONcard.name}\n`;
-    content += `Mana cost: ${JSONcard.manaCost}\n`;
-    content += `Color: ${JSONcard.color}\n`;
-    content += `Type: ${JSONcard.type}\n`;
-    content += `Rarity: ${JSONcard.rarity}\n`;
-    content += `Rules text: ${JSONcard.rulesText}\n`;
-    content += `Market value: ${JSONcard.marketValue}\n`;
-    if (JSONcard.type === 'Creature') {
-      content += `Power/Toughness: ${JSONcard.powerAndToughness}\n`;
-    }
-    if (JSONcard.type === 'Planeswalker') {
-      content += `Loyalty: ${JSONcard.loyaltyMarks}\n`;
-    }
-    return content;
-  }
-
-  /**
-   * Method to color a card
-   * @param card The card to color
-   */
-  private colorCard(card: string): string {
-    const JSONcard = JSON.parse(card);
-    const cardInfo = this.formatCard(card);
-    switch (JSONcard.color) {
-      case Color.White:
-        return chalk.white.bold.italic(cardInfo);
-      case Color.Blue:
-        return chalk.blue.bold.italic(cardInfo);
-      case Color.Black:
-        return chalk.black.bold.italic(cardInfo);
-      case Color.Red:
-        return chalk.red.bold.italic(cardInfo);
-      case Color.Green:
-        return chalk.green.bold.italic(cardInfo);
-      case Color.Colorless:
-        return chalk.gray.bold.italic(cardInfo);
-      case Color.Multicolor:
-        return chalk.yellow.bold.italic.bgBlack(cardInfo);
-      default:
-        return chalk.red.bold('Unknown color');
-    }
   }
 }

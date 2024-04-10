@@ -35,9 +35,9 @@ const server = net.createServer((connection) => {
       case 'add':
         cardManager.addCard(request.user, cardData!, (error, result) => {
           if (error) {
-            connection.write(error);
+            connection.write(JSON.stringify({ status: 'Error', answer: error }));
           } else {
-            connection.write(result);
+            connection.write(JSON.stringify({ status: 'Success', answer: result }));
           }
           connection.end();
         });
@@ -45,9 +45,9 @@ const server = net.createServer((connection) => {
       case 'update':
         cardManager.updateCard(request.user, cardData!, (error, result) => {
           if (error) {
-            connection.write(error);
+            connection.write(JSON.stringify({ status: 'Error', answer: error }));
           } else {
-            connection.write(result);
+            connection.write(JSON.stringify({ status: 'Success', answer: result }));
           }
           connection.end();
         });
@@ -55,9 +55,9 @@ const server = net.createServer((connection) => {
       case 'remove':
         cardManager.removeCard(request.user, request.cardID, (error, result) => {
           if (error) {
-            connection.write(error);
+            connection.write(JSON.stringify({ status: 'Error', answer: error }));
           } else {
-            connection.write(result);
+            connection.write(JSON.stringify({ status: 'Success', answer: result }));
           }
           connection.end();
         });
@@ -65,9 +65,9 @@ const server = net.createServer((connection) => {
       case 'show':
         cardManager.showCard(request.user, request.cardID, (error, result) => {
           if (error) {
-            connection.write(error);
+            connection.write(JSON.stringify({ status: 'Error', answer: error }));
           } else {
-            connection.write(result);
+            connection.write(JSON.stringify({ status: 'CardsReceived', answer: result }));
           }
           connection.end();
         });
@@ -75,9 +75,9 @@ const server = net.createServer((connection) => {
       case 'list':
         cardManager.listCollection(request.user, (error, result) => {
           if (error) {
-            connection.write(error);
+            connection.write(JSON.stringify({ status: 'Error', answer: error }));
           } else {
-            connection.write(result);
+            connection.write(JSON.stringify({ status: 'CardsReceived', answer: result }));
           }
           connection.end();
         });

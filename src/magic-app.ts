@@ -1,4 +1,5 @@
 import yargs from 'yargs';
+import chalk from 'chalk';
 import { hideBin } from 'yargs/helpers';
 import { MagiCard, Color, Type, Rarity } from './MagiCard.js';
 import net from 'net';
@@ -266,9 +267,82 @@ client.on('data', (dataChunk) => {
 });
 
 client.on('end', () => {
-  console.log('Received from server:\n', wholeData.toString());
+  console.log('Received from server:\n');
+  const answer = JSON.parse(wholeData);
+  // Las diferentes cartas se envían en formato JSON válido de tal forma: ["card1", "card2", "card3"]
+  // A su vez, cada carta se envía en formato JSON válido de tal forma: {"id": 1, "name": "cardName", ...}
+  // Así se puede parsear cada carta y mostrarla en consola con el formato deseado
+  // En mi caso se lo paso a la función colorCard y esta se encarga de parsearla y darle color a la carta
+  let receivedData: string[];
+  switch (answer.status) {
+    case 'Error':
+      console.log(chalk.red.bold(answer.answer));
+      break;
+    case 'Success':
+      console.log(chalk.green.bold(answer.answer));
+      break;
+    case 'CardsReceived':
+      receivedData = JSON.parse(answer.answer);
+      receivedData.forEach((card: string) => {
+        console.log(colorCard(card));
+      });
+      break;
+  }
 });
 
 client.on('close', () => {
   console.log('Connection closed');
 });
+
+/**
+ * Function to format a card in a string (for console output nicely)
+ * @param card Card to format
+ * @returns Formatted card
+ */
+export function formatCardString(card: string): string {
+  const JSONcard = JSON.parse(card);
+  let content = '';
+  content += `ID: ${JSONcard.id}\n`;
+  content += `Name: ${JSONcard.name}\n`;
+  content += `Mana cost: ${JSONcard.manaCost}\n`;
+  content += `Color: ${JSONcard.color}\n`;
+  content += `Type: ${JSONcard.type}\n`;
+  content += `Rarity: ${JSONcard.rarity}\n`;
+  content += `Rules text: ${JSONcard.rulesText}\n`;
+  content += `Market value: ${JSONcard.marketValue}\n`;
+  if (JSONcard.type === 'Creature') {
+    content += `Power/Toughness: ${JSONcard.powerAndToughness}\n`;
+  }
+  if (JSONcard.type === 'Planeswalker') {
+    content += `Loyalty: ${JSONcard.loyaltyMarks}\n`;
+  }
+  return content;
+}
+
+/**
+ * Function to color a card (first is formated to string)
+ * @param card Card to color
+ * @returns Colored card
+ */
+export function colorCard(card: string): string {
+  const JSONcard = JSON.parse(card);
+  const cardInfo = formatCardString(card);
+  switch (JSONcard.color) {
+    case Color.White:
+      return chalk.white.bold.italic(cardInfo);
+    case Color.Blue:
+      return chalk.blue.bold.italic(cardInfo);
+    case Color.Black:
+      return chalk.black.bold.italic(cardInfo);
+    case Color.Red:
+      return chalk.red.bold.italic(cardInfo);
+    case Color.Green:
+      return chalk.green.bold.italic(cardInfo);
+    case Color.Colorless:
+      return chalk.gray.bold.italic(cardInfo);
+    case Color.Multicolor:
+      return chalk.yellow.bold.italic.bgBlack(cardInfo);
+    default:
+      return chalk.bold('Unknown color');
+  }
+}
