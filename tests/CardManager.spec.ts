@@ -81,7 +81,9 @@ describe('CardManager', () => {
       const cardID = 2;
       cardManager.showCard(user, cardID, (error, result) => {
         expect(error).to.be.undefined;
-        expect(result).to.be.a('string');
+        expect(result).to.be.equal(
+          '["{\\"id\\":2,\\"name\\":\\"Fenix\\",\\"manaCost\\":1000,\\"color\\":\\"Green\\",\\"type\\":\\"Artifact\\",\\"rarity\\":\\"Mythic\\",\\"rulesText\\":\\"Tap: meow meow\\",\\"marketValue\\":10}"]',
+        );
         done();
       });
     });
@@ -102,7 +104,9 @@ describe('CardManager', () => {
       const user = 'juan';
       cardManager.listCollection(user, (error, result) => {
         expect(error).to.be.undefined;
-        expect(result).to.be.a('string');
+        expect(result).to.be.equal(
+          '["{\\"id\\":2,\\"name\\":\\"Fenix\\",\\"manaCost\\":1000,\\"color\\":\\"Green\\",\\"type\\":\\"Artifact\\",\\"rarity\\":\\"Mythic\\",\\"rulesText\\":\\"Tap: meow meow\\",\\"marketValue\\":10}","{\\"id\\":3,\\"name\\":\\"Hydra\\",\\"manaCost\\":500,\\"color\\":\\"Multicolor\\",\\"type\\":\\"Planeswalker\\",\\"rarity\\":\\"Common\\",\\"rulesText\\":\\"Tap: aaa\\",\\"marketValue\\":20,\\"loyaltyMarks\\":5}"]',
+        );
         done();
       });
     });

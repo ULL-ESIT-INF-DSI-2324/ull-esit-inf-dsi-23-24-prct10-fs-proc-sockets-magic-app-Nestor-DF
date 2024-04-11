@@ -344,7 +344,3 @@ En conclusión, esta práctica me ha proporcionado una comprensión más profund
 3. MDN Web Docs - JavaScript Reference: [https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference) - Documentación oficial de la Red de Desarrolladores de Mozilla que proporciona explicaciones detalladas, ejemplos y referencias para las características del lenguaje JavaScript y las API.
 
 4. API asíncrona proporcionada por Node.js para trabajar con el sistema de archivos: [https://nodejs.org/docs/latest/api/fs.html](https://nodejs.org/docs/latest/api/fs.html)
-
-5. Yargs: [https://www.npmjs.com/package/yargs](https://www.npmjs.com/package/yargs)
-
-6. Yargs: [https://www.npmjs.com/package/yargs](https://www.npmjs.com/package/yargs)
